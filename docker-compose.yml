@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # Memcached Node 1
+  memcached-1:
+    image: memcached:1.6-alpine
+    container_name: memcached-1
+    # -m 64: 64MB memory limit, -c 1024: max simultaneous connections
+    command: -m 64 -c 1024
+    ports:
+      - "11211:11211"
+    # Using "unless-stopped" so `docker stop` actually keeps it dead
+    # for our fault tolerance demo. "always" would auto-restart it.
+    restart: unless-stopped
+
+  # Memcached Node 2
+  memcached-2:
+    image: memcached:1.6-alpine
+    container_name: memcached-2
+    command: -m 64 -c 1024
+    ports:
+      - "11212:11211"
+    restart: unless-stopped
+
+  # Memcached Node 3
+  memcached-3:
+    image: memcached:1.6-alpine
+    container_name: memcached-3
+    command: -m 64 -c 1024
+    ports:
+      - "11213:11211"
+    restart: unless-stopped
+
+  # Python Application
+  app:
+    build: .
+    container_name: cache-simulator
+    environment:
+      # Pass the memcached node addresses to the app
+      - MEMCACHED_NODES=memcached-1:11211,memcached-2:11211,memcached-3:11211
+    depends_on:
+      - memcached-1
+      - memcached-2
+      - memcached-3
+    # Keeps the container running and allows us to see colored output in the terminal
+    tty: true
+    restart: unless-stopped
